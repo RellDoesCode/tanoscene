@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>TanoScene - Home</title>
+        <link rel="stylesheet" href="../styles/style.css">
+    </head>
+
+    <body id="home-page">
+        <main class="home-container">
+            <section class="create-post">
+                <h2>Create a Post</h2>
+                <textarea placeholder="What's on your mind?" rows="3" class="post-input"></textarea>
+                <button class="post-button">Post</button>
+            </section>
+
+            <section class="feed">
+                <div class="post">
+                    <div class="post-header">
+                    <span class="username">@Jane Doe</span>
+                    <span class="date">October 20, 2025</span>
+                </div>
+                <div class="post-content">
+                    That rollercoaster was so fun!
+                </div>
+                </div>
+
+                <div class="post">
+                    <div class="post-header">
+                    <span class="username">@anakin</span>
+                    <span class="date">October 21, 2025</span>
+                </div>
+                <div class="post-content">
+                    Just need some space -.-
+                </div>
+                </div>
+
+            </section>
+            </main>
+
+        <footer>
+            <p>&copy; 2025 TanoScene</p>
+        </footer>
+
+        <script type="module">
+            import addNavbar from '../common/navbar.js';
+            addNavbar();
+        </script>
+
+    </body>
+    
+</html>

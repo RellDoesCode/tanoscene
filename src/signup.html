@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TanoScene - Sign Up</title>
+    <link rel="stylesheet" href="../styles/style.css">
+</head>
+
+<body>
+    <script type="module">
+        import addNavbar from '../common/navbar.js';
+        addNavbar();
+    </script>
+
+    <main class="signup-container">
+        <section class="signup-form">
+            <h2>Create Your TanoScene Account</h2>
+            
+            <form>
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="@yourname" required>
+
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="you@example.com" required>
+
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+
+                <label for="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" name="confirm-password" required>
+
+                <button type="submit" class="signup-button">Sign Up</button>
+            </form>
+
+            <p class="login-link">
+                Already have an account? <a href="index.html">Log In</a>   
+            </p>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 TanoScene</p>
+    </footer>
+</body>
+</html>
