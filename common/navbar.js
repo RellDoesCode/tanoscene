@@ -21,7 +21,9 @@ function createNavbar() {
     const menuItems = [
         { text: 'Sign Up / Login', href: 'signup.html' },
         { text: 'Profile', href: 'profile.html' },
-        { text: 'Settings', href: 'settings.html' }
+        { text: 'Settings', href: 'settings.html' },
+        { text: 'FAQ', href: 'faq.html' },
+        { text: 'About', href: 'about.html' }
     ];
 
     menuItems.forEach(item => {
