@@ -7,9 +7,11 @@
 </head>
 <body>
     <script type="module">
-        import addNavbar from '../common/navbar.js';
-        addNavbar();
-    </script>
+  import { requireAuth } from "../common/auth.js";
+  import addNavbar from "../common/navbar.js";
+  requireAuth();
+  addNavbar();
+</script>
 
     <main class="profile-container">
 
