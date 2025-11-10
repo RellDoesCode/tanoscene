@@ -1,63 +1,69 @@
+import { getUser, isAuthed, logout } from "./auth.js";
+
 function createNavbar() {
-    const navbar = document.createElement('nav');
-    navbar.classList.add('navbar');
+  const navbar = document.createElement('nav');
+  navbar.classList.add('navbar');
 
-    const left = document.createElement('div');
-    left.classList.add('navbar-left');
-    const logo = document.createElement('a');
-    logo.textContent = 'TanoScene';
-    logo.href = 'index.html';   //Link to Home Page
-    left.appendChild(logo);
+  const left = document.createElement('div');
+  left.classList.add('navbar-left');
+  const logo = document.createElement('a');
+  logo.textContent = 'TanoScene';
+  logo.href = 'index.html';
+  left.appendChild(logo);
 
-    const right = document.createElement('div');
-    right.classList.add('navbar-right');
-    const menuButton = document.createElement('button');
-    menuButton.textContent = 'Menu';
-    menuButton.classList.add('menu-button');
+  const right = document.createElement('div');
+  right.classList.add('navbar-right');
+  const menuButton = document.createElement('button');
+  menuButton.textContent = 'Menu';
+  menuButton.classList.add('menu-button');
 
-    const dropdown = document.createElement('div');
-    dropdown.classList.add('dropdown-menu');
+  const dropdown = document.createElement('div');
+  dropdown.classList.add('dropdown-menu');
 
-    const menuItems = [
-        { text: 'Sign Up / Login', href: 'signup.html' },
-        { text: 'Profile', href: 'profile.html' },
-        { text: 'Settings', href: 'settings.html' },
-        { text: 'FAQ', href: 'faq.html' },
-        { text: 'About', href: 'about.html' }
-    ];
+  const items = [
+    { text: 'Profile', href: 'profile.html' },
+    { text: 'Settings', href: 'settings.html' }
+  ];
 
-    menuItems.forEach(item => {
-        const menuItem = document.createElement('a');
-        menuItem.textContent = item.text;
-        menuItem.href = item.href;
-        dropdown.appendChild(menuItem);
-    });
+  items.forEach(i => {
+    const a = document.createElement('a');
+    a.textContent = i.text;
+    a.href = i.href;
+    append(dropdown, a);
+  });
 
-    right.appendChild(menuButton);
-    right.appendChild(dropdown);
+  const authSlot = document.createElement('span');
+  authSlot.classList.add('auth-slot');
 
-    menuButton.addEventListener('click', () => {    //Toggle dropdown on menu button click
-        event.stopPropagation(); //This prevents triggering the document click
-        dropdown.classList.toggle('show');
-    });
+  if (isAuthed()) {
+    const u = getUser();
+    authSlot.innerHTML = `<span class="hello">Hi, ${u.username}</span> <button id="logoutBtn">Logout</button>`;
+  } else {
+    authSlot.innerHTML = `<a href="login.html">Login</a> <a href="signup.html">Sign Up</a>`;
+  }
 
-    document.addEventListener('click', (event) => {
-        if (!navbar.contains(event.target)) {
-            dropdown.classList.remove('show');
-        }
-    });
+  append(right, menuButton, dropdown, authSlot);
+  append(navbar, left, right);
 
-    navbar.appendChild(left);
-    navbar.appendChild(right);
+  menuButton.addEventListener('click', e => {
+    e.stopPropagation();
+    dropdown.classList.toggle('show');
+  });
+  document.addEventListener('click', e => {
+    if (!navbar.contains(e.target)) dropdown.classList.remove('show');
+  });
 
-    return navbar;
+  return navbar;
 }
 
+function append(parent, ...els) { els.forEach(x => parent.appendChild(x)); }
+
 function addNavbar() {
-    console.log("addNavbar executed!"); //debug
-    const body = document.body;
-    const navbar = createNavbar();
-    body.insertBefore(navbar, body.firstChild);
+  const body = document.body;
+  const navbar = createNavbar();
+  body.insertBefore(navbar, body.firstChild);
+  const btn = document.getElementById("logoutBtn");
+  if (btn) btn.onclick = () => { logout(); location.reload(); };
 }
 
 export default addNavbar;
