@@ -1,45 +1,33 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>TanoScene - Sign Up</title>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Sign Up • TanoScene</title>
     <link rel="stylesheet" href="../styles/style.css">
-</head>
-
-<body>
-    <script type="module">
-        import addNavbar from '../common/navbar.js';
-        addNavbar();
-    </script>
-
-    <main class="signup-container">
-        <section class="signup-form">
-            <h2>Create Your TanoScene Account</h2>
-            
-            <form method="post" action=""  id="form" name="signupForm">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="@yourname" required>
-
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" placeholder="you@example.com" required>
-
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-
-                <label for="confirm-password">Confirm Password</label>
-                <input type="password" id="confirm-password" name="confirm-password" required>
-
-                <button type="submit" class="signup-button">Sign Up</button>
-            </form>
-
-            <p class="login-link">
-                Already have an account? <a href="index.html">Log In</a>   
-            </p>
-        </section>
+  </head>
+  <body>
+    <main class="container">
+      <h1>Create Account</h1>
+      <form id="signupForm" class="card">
+        <label>Username
+          <input type="text" id="username" required>
+        </label>
+        <label>Email
+          <input type="email" id="email" required>
+        </label>
+        <label>Password
+          <input type="password" id="password" required minlength="6">
+        </label>
+        <button type="submit">Sign Up</button>
+        <p class="form-error"></p>
+      </form>
+      <p>Already have an account? <a href="./login.html">Login</a></p>
     </main>
 
-    <footer>
-        <p>&copy; 2025 TanoScene</p>
-    </footer>
-</body>
+    <script type="module">
+      import addNavbar from "../common/navbar.js";
+      addNavbar();
+    </script>
+    <script type="module" src="./signup.js"></script>
+  </body>
 </html>
