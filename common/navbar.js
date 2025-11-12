@@ -29,12 +29,11 @@ function createNavbar() {
     const a = document.createElement('a');
     a.textContent = i.text;
     a.href = i.href;
-    append(dropdown, a);
+    dropdown.appendChild(a);
   });
 
   const authSlot = document.createElement('span');
   authSlot.classList.add('auth-slot');
-
   if (isAuthed()) {
     const u = getUser();
     authSlot.innerHTML = `<span class="hello">Hi, ${u.username}</span> <button id="logoutBtn">Logout</button>`;
@@ -42,17 +41,20 @@ function createNavbar() {
     authSlot.innerHTML = `<a href="login.html">Login</a> <a href="signup.html">Sign Up</a>`;
   }
 
-  append(right, menuButton, dropdown, authSlot);
-  append(navbar, left, right);
+  right.appendChild(menuButton);
+  right.appendChild(dropdown);
+  right.appendChild(authSlot);
 
-  menuButton.addEventListener('click', e => {
-    e.stopPropagation();
+  menuButton.addEventListener('click', (event) => {
+    event.stopPropagation();
     dropdown.classList.toggle('show');
   });
-  document.addEventListener('click', e => {
-    if (!navbar.contains(e.target)) dropdown.classList.remove('show');
+  document.addEventListener('click', (event) => {
+    if (!navbar.contains(event.target)) dropdown.classList.remove('show');
   });
 
+  navbar.appendChild(left);
+  navbar.appendChild(right);
   return navbar;
 }
 
