@@ -58,6 +58,8 @@ function createNavbar() {
   return navbar;
 }
 
+function append(parent, ...els) { els.forEach(x => parent.appendChild(x)); }
+
 function addNavbar() {
   const body = document.body;
   const navbar = createNavbar();
