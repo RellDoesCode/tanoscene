@@ -36,3 +36,9 @@ export function login({ email, password }) {
   if (!user) throw new Error("Invalid credentials");
   localStorage.setItem(USER_KEY, JSON.stringify({ id: user.id, username: user.username, email: user.email }));
 }
+
+export function requireAuth() {
+  if (!isAuthed()) {
+    window.location.href = "./login.html";
+  }
+}

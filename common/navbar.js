@@ -22,7 +22,9 @@ function createNavbar() {
 
   const items = [
     { text: 'Profile', href: 'profile.html' },
-    { text: 'Settings', href: 'settings.html' }
+    { text: 'Settings', href: 'settings.html' },
+    { text: 'FAQ', href: 'faq.html' },
+    { text: 'About', href: 'about.html' }
   ];
 
   items.forEach(i => {
