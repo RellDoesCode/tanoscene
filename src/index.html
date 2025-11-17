@@ -15,28 +15,9 @@
             </section>
 
             <section class="feed">
-                <div class="post">
-                    <div class="post-header">
-                    <span class="username">@Jane Doe</span>
-                    <span class="date">October 20, 2025</span>
-                </div>
-                <div class="post-content">
-                    That rollercoaster was so fun!
-                </div>
-                </div>
-
-                <div class="post">
-                    <div class="post-header">
-                    <span class="username">@anakin</span>
-                    <span class="date">October 21, 2025</span>
-                </div>
-                <div class="post-content">
-                    Just need some space -.-
-                </div>
-                </div>
-
+                <div class="posts-list"></div> <!-- Container for dynamic posts -->
             </section>
-            </main>
+        </main>
 
         <footer>
             <p>&copy; 2025 TanoScene</p>
@@ -44,7 +25,27 @@
 
         <script type="module">
             import addNavbar from '../common/navbar.js';
+            import { renderPosts } from "../common/postComponent.js";
+            
             addNavbar();
+
+            const feedPosts = [
+                {
+                    username: "JaneDoe",
+                    avatar: "../images/avatar-placeholder.png",
+                    date: "October 20, 2025",
+                    content: "That rollercoaster was so fun!"
+                },
+                {
+                    username: "anakin",
+                    avatar: "../images/avatar-placeholder.png",
+                    date: "October 21, 2025",
+                    content: "Just need some space -.-" 
+                }
+            ];
+
+            const postsContainer = document.querySelector(".posts-list");
+            renderPosts(postsContainer, feedPosts);
         </script>
 
     </body>

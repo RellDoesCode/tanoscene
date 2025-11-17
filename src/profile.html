@@ -6,12 +6,6 @@
     <link rel="stylesheet" href="../styles/style.css">
 </head>
 <body>
-    <script type="module">
-  import { requireAuth } from "../common/auth.js";
-  import addNavbar from "../common/navbar.js";
-  requireAuth();
-  addNavbar();
-</script>
 
     <main class="profile-container">
 
@@ -28,33 +22,42 @@
 
         <section class="profile-posts">
             <h3>Posts</h3>
-
-            <div class="post">
-                <div class="post-header">
-                    <span class="username">@tano_user</span>
-                    <span class="date">October 21, 2025</span>
-                </div>
-                <div class="post-content">
-                    Here's a more recent post!
-                </div>
-            </div>
-
-            <div class="post">
-                <div class="post-header">
-                    <span class="username">@tano_user</span>
-                    <span class="date">October 20, 2025</span>
-                </div>
-                <div class="post-content">
-                    Loving the new TanoScene interface!
-                </div>
-            </div>
-
+            <!-- User posts will be dynamically inserted here -->
+             <div class="posts-list"></div> <!-- Container for dynamic posts -->
         </section>
 
-    </main>
+        </main>
 
-    <footer>
-        <p>&copy; 2025 TanoScene</p>
-    </footer>
+        <footer>
+            <p>&copy; 2025 TanoScene</p>
+        </footer>
+
+    <script type="module">
+        import { requireAuth } from "../common/auth.js";
+        import addNavbar from "../common/navbar.js";
+        import { renderPosts } from "../common/postComponent.js";
+
+        requireAuth();
+        addNavbar();
+
+        const userPosts = [ //Example user posts (replace with real data later)
+            {
+                username: "tano-user",
+                avatar: "../images/avatar-placeholder.png",
+                date: "October 21, 2025",
+                content: "Here's a more recent post!"
+            },
+            {
+                username: "tano-user",
+                avatar: "../images/avatar-placeholder.png",
+                date: "October 20, 2025",
+                content: "This is my first post!"
+            }
+        ];
+
+        const postsContainer = document.querySelector(".profile-posts .posts-list");
+        renderPosts(postsContainer, userPosts);
+    </script>
+
 </body>
 </html>
