@@ -368,11 +368,3 @@ footer {
 .active .faq-answer{
     display: block;
 }
-.container { max-width: 720px; margin: 40px auto; padding: 0 16px; }
-.card { display: grid; gap: 10px; padding: 16px; border: 1px solid #ccc; border-radius: 8px; background: #fff; }
-label { display: grid; gap: 6px; }
-input { padding: 8px; border: 1px solid #bbb; border-radius: 6px; }
-button { padding: 8px 12px; border: 1px solid #2e6f40; background: #2e6f40; color: #fff; border-radius: 6px; cursor: pointer; font-size: 16px; }
-button:hover { filter: brightness(1.05); }
-.form-error { color: #b00020; margin: 6px 0 0; }
-.hello { margin-left: 10px; margin-right: 8px; }
