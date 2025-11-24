@@ -3,15 +3,30 @@ import { login } from "../common/auth.js";
 const form = document.getElementById("loginForm");
 const err = document.getElementById("error");
 
-form.addEventListener("submit", (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
   err.textContent = "";
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value;
-  try {
-    login({ email, password });
-    window.location.href = "./index.html";
-  } catch (ex) {
-    err.textContent = ex.message || "Login failed";
+  const email = form.email.value;
+  const password = form.password.value;
+
+  const res = await fetch("http://localhost:3000/api/auth/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ email, password })
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    document.getElementById("error").textContent = json.message || "Login failed";
+    return;
   }
+
+  localStorage.setItem("token", json.token);
+  localStorage.setItem("user", JSON.stringify(json.user));
+
+  alert("Login successful!");
+  window.location.href = "./index.html";
 });

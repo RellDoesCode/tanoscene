@@ -9,13 +9,15 @@ function writeUsers(users) {
 }
 
 export function getUser() {
-  try { return JSON.parse(localStorage.getItem(USER_KEY)); } catch { return null; }
+  const user = localStorage.getItem("user");
+  return user ? JSON.parse(user) : null;
 }
 export function isAuthed() {
-  return !!getUser();
+  return !!localStorage.getItem("token");
 }
 export function logout() {
-  localStorage.removeItem(USER_KEY);
+  localStorage.removeItem("user");
+  localStorage.removeItem("token");
 }
 
 export function signup({ username, email, password }) {
