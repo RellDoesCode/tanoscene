@@ -4,6 +4,8 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
+import mediaRoutes from "./routes/mediaRoutes.js";
+
 
 dotenv.config();
 
@@ -17,6 +19,8 @@ app.use(express.json());
 app.use("/api/users", userRoutes);
 
 app.use("/api/posts", postRoutes);
+
+app.use("/api/media", mediaRoutes);
 
 app.get("/", (req, res) => {
   res.send("TanoScene backend is running...");

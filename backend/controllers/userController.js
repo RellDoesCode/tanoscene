@@ -120,10 +120,23 @@ export const getMe = async (req, res) => {
 // ----------------------
 export const updateProfile = async (req, res) => {
   try {
-    const updatedUser = await User.findByIdAndUpdate(req.user._id, req.body, { new: true }).select("-password");
+    const updates = { ...req.body };
+
+    if (req.files?.avatar) {
+      updates.avatar = `/api/media/${req.files.avatar[0].id}`;
+    }
+    if (req.files?.banner) {
+      updates.banner = `/api/media/${req.files.banner[0].id}`;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      updates,
+      { new: true }
+    ).select("-password");
+
     res.json(updatedUser);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -147,7 +160,7 @@ export const followUser = async (req, res) => {
     await currentUser.save();
     await targetUser.save();
 
-    res.json({ message: "Followed", currentUser });
+    res.json({ message: "Success" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Follow failed" });
@@ -174,7 +187,7 @@ export const unfollowUser = async (req, res) => {
     await currentUser.save();
     await targetUser.save();
 
-    res.json({ message: "Unfollowed", currentUser });
+    res.json({ message: "Success" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Unfollow failed" });
