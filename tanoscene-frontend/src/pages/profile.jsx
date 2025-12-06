@@ -1,0 +1,277 @@
+// frontend/src/pages/profile.jsx
+import React, { useState, useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/authprovider.jsx";
+import axios from "axios";
+
+export default function Profile() {
+  const { username } = useParams(); // undefined if visiting own profile
+  const navigate = useNavigate();
+  const { user: currentUser, login: setAuthUser } = useAuth() || {};
+  const [userProfile, setUserProfile] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [editing, setEditing] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  const bioRef = useRef(null);
+  const avatarInputRef = useRef(null);
+  const bannerInputRef = useRef(null);
+
+  const token = localStorage.getItem("token");
+  const isOwnProfile = !username || currentUser?.username === username;
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setLoading(true);
+        setNotFound(false);
+
+        // If not logged in and no username, redirect
+        if (!token && !username) {
+          navigate("/login");
+          return;
+        }
+
+        // Fetch profile
+        const profileRes = await axios.get(
+          username ? `/api/users/${username}` : "/api/users/me",
+          { headers: username ? {} : { Authorization: `Bearer ${token}` } }
+        );
+        setUserProfile(profileRes.data);
+
+        // Fetch posts
+        const postsRes = await axios.get(
+          `/api/posts/user/${username || currentUser.username}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setPosts(postsRes.data);
+
+        // Fetch follow state if viewing someone else's profile
+        if (!isOwnProfile) {
+          const followRes = await axios.get(
+            `/api/users/${username}/isFollowing`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setIsFollowing(Boolean(followRes.data.following));
+        }
+      } catch (err) {
+        console.error(err);
+        if (err.response?.status === 404) setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [username, token, currentUser, navigate, isOwnProfile]);
+
+  // EDIT PROFILE
+  const handleEditToggle = async () => {
+    if (!userProfile) return;
+    if (editing) {
+      try {
+        const updated = {
+          bio: bioRef.current?.value,
+          avatar: userProfile.avatar,
+          banner: userProfile.banner,
+        };
+        const res = await axios.put("/api/users/me", updated, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setUserProfile(res.data);
+
+        // update local storage & auth context
+        const saved = localStorage.getItem("user");
+        if (saved) {
+          const merged = { ...JSON.parse(saved), ...res.data };
+          localStorage.setItem("user", JSON.stringify(merged));
+          setAuthUser?.(merged);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    setEditing(!editing);
+  };
+
+  // PREVIEW AVATAR/BANNER
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUserProfile((u) => ({ ...u, avatar: URL.createObjectURL(file) }));
+  };
+  const handleBannerChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUserProfile((u) => ({ ...u, banner: URL.createObjectURL(file) }));
+  };
+
+  // FOLLOW / UNFOLLOW
+  const handleFollowToggle = async () => {
+    if (!userProfile) return;
+    try {
+      const url = isFollowing
+        ? `/api/users/${userProfile.username}/unfollow`
+        : `/api/users/${userProfile.username}/follow`;
+
+      const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
+      setIsFollowing(!isFollowing);
+
+      if (res.data.currentUser) {
+        localStorage.setItem("user", JSON.stringify(res.data.currentUser));
+        setAuthUser?.(res.data.currentUser);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Could not update follow status.");
+    }
+  };
+
+  // POST ACTIONS
+  const updatePost = (updatedPost) => {
+    setPosts((cur) => cur.map((p) => (p._id === updatedPost._id ? updatedPost : p)));
+  };
+
+  const likePost = async (postId) => {
+    try {
+      const res = await axios.post(`/api/posts/${postId}/like`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      updatePost(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const repostPost = async (postId) => {
+    try {
+      const res = await axios.post(`/api/posts/${postId}/repost`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      updatePost(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const addComment = async (postId, content) => {
+    if (!content.trim()) return;
+    try {
+      const res = await axios.post(`/api/posts/${postId}/comment`, { content }, { headers: { Authorization: `Bearer ${token}` } });
+      updatePost(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Loading / Not found
+  if (loading) return <p>Loading profile...</p>;
+  if (notFound) return <p>User "{username}" not found.</p>;
+  if (!userProfile) return null;
+
+  return (
+    <main className="profile-container">
+      {/* BANNER */}
+      <div className="profile-banner">
+        <img
+          src={userProfile.banner || "/images/banner-placeholder.png"}
+          onClick={() => isOwnProfile && editing && bannerInputRef.current.click()}
+        />
+        {isOwnProfile && (
+          <input ref={bannerInputRef} type="file" accept="image/*" hidden onChange={handleBannerChange} />
+        )}
+      </div>
+
+      {/* HEADER */}
+      <section className="profile-header">
+        <div className="profile-avatar">
+          <img
+            src={userProfile.avatar || "/images/avatar-placeholder.png"}
+            onClick={() => isOwnProfile && editing && avatarInputRef.current.click()}
+          />
+          {isOwnProfile && (
+            <input ref={avatarInputRef} type="file" accept="image/*" hidden onChange={handleAvatarChange} />
+          )}
+        </div>
+
+        <div className="profile-info">
+          <h2>@{userProfile.username}</h2>
+
+          {editing ? (
+            <textarea ref={bioRef} defaultValue={userProfile.bio} className="bio-edit" />
+          ) : (
+            <p className="bio">{userProfile.bio || "No bio available."}</p>
+          )}
+
+          {isOwnProfile ? (
+            <button className="edit-profile-button" onClick={handleEditToggle}>
+              {editing ? "Save Changes" : "Edit Profile"}
+            </button>
+          ) : (
+            <button className="edit-profile-button" onClick={handleFollowToggle}>
+              {isFollowing ? "Following" : "Follow"}
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* POSTS */}
+      <section className="profile-posts">
+        <h3>Posts</h3>
+        <div className="posts-list">
+          {posts.length === 0 ? (
+            <p>No posts yet.</p>
+          ) : (
+            posts.map((p) => (
+              <article key={p._id} className="post">
+                <img className="post-avatar" src={p.author?.avatar} alt="" />
+                <div className="post-body">
+                  <p>
+                    <strong>{p.author?.username}</strong> —{" "}
+                    <small>{new Date(p.createdAt).toLocaleString()}</small>
+                  </p>
+                  <p>{p.content}</p>
+
+                  {p.media?.map((m, i) => {
+                    const ext = m.split(".").pop();
+                    if (["mp4", "webm", "ogg"].includes(ext)) {
+                      return <video key={i} src={m} controls className="post-media" />;
+                    }
+                    return <img key={i} src={m} className="post-media" />;
+                  })}
+
+                  <div className="post-actions">
+                    <button className="post-button" onClick={() => likePost(p._id)}>Like ({p.likes?.length || 0})</button>
+                    <button className="post-button" onClick={() => repostPost(p._id)}>Repost ({p.reposts?.length || 0})</button>
+                  </div>
+
+                  <div style={{ marginTop: 8 }}>
+                    <strong>Comments:</strong>
+                    {p.comments?.length ? (
+                      p.comments.map((c, i) => (
+                        <p key={i}>
+                          <strong>{c.author?.username}</strong>: {c.content}
+                        </p>
+                      ))
+                    ) : (
+                      <p>No comments</p>
+                    )}
+
+                    {currentUser && (
+                      <input
+                        placeholder="Add a comment..."
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            addComment(p._id, e.target.value);
+                            e.target.value = "";
+                          }
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
