@@ -6,23 +6,35 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
 
-  // Load user and token on startup
+  // Load user and token from localStorage on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    const savedToken = localStorage.getItem("token");
-    if (savedUser && savedToken) {
-      setUser(JSON.parse(savedUser));
-      setToken(savedToken);
+    try {
+      const savedUser = localStorage.getItem("user");
+      const savedToken = localStorage.getItem("token");
+
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+      if (savedToken) {
+        setToken(savedToken);
+      }
+    } catch (err) {
+      console.error("Failed to load auth from localStorage:", err);
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
     }
   }, []);
 
-  const login = ({ user: userData, token: jwtToken }) => {
-    setUser(userData);
-    setToken(jwtToken);
-    localStorage.setItem("user", JSON.stringify(userData));
-    localStorage.setItem("token", jwtToken);
+  // Login: set state and localStorage
+  const login = (data) => {
+    if (!data?.user || !data?.token) return;
+    setUser(data.user);
+    setToken(data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+    localStorage.setItem("token", data.token);
   };
 
+  // Logout: clear state and localStorage
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -30,8 +42,17 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
   };
 
+  // Update user in context and localStorage safely
+  const setAuthUser = (updatedUser) => {
+    if (!updatedUser) return;
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, setUser, setToken, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, token, setUser: setAuthUser, setToken, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
