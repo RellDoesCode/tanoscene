@@ -1,4 +1,3 @@
-// frontend/src/pages/profile.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authprovider.jsx";
@@ -7,7 +6,7 @@ import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Profile() {
-  const { username } = useParams(); // undefined if visiting own profile
+  const { username } = useParams();
   const navigate = useNavigate();
   const { user: currentUser, login: setAuthUser } = useAuth() || {};
   const [userProfile, setUserProfile] = useState(null);
@@ -24,52 +23,50 @@ export default function Profile() {
   const token = localStorage.getItem("token");
   const isOwnProfile = !username || currentUser?.username === username;
 
-  // Load profile and posts
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        setLoading(true);
-        setNotFound(false);
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      setNotFound(false);
 
-        if (!token && !username) {
-          navigate("/login");
-          return;
-        }
+      if (!token && !username) {
+        navigate("/login");
+        return;
+      }
 
-        const profileUrl = username
-          ? `${API_URL}/api/users/${username}`
-          : `${API_URL}/api/users/me`;
+      const profileUrl = username
+        ? `${API_URL}/api/users/${username}`
+        : `${API_URL}/api/users/me`;
 
-        const profileRes = await axios.get(profileUrl, {
-          headers: { Authorization: token ? `Bearer ${token}` : "" },
-        });
-        setUserProfile(profileRes.data);
+      const profileRes = await axios.get(profileUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUserProfile(profileRes.data);
 
-        const postsRes = await axios.get(
-          `${API_URL}/api/posts/user/${username || currentUser.username}`,
+      const postsRes = await axios.get(
+        `${API_URL}/api/posts/user/${username || currentUser.username}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPosts(postsRes.data || []);
+
+      if (!isOwnProfile) {
+        const followRes = await axios.get(
+          `${API_URL}/api/users/${username}/isFollowing`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setPosts(postsRes.data);
-
-        if (!isOwnProfile) {
-          const followRes = await axios.get(
-            `${API_URL}/api/users/${username}/isFollowing`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          setIsFollowing(Boolean(followRes.data.following));
-        }
-      } catch (err) {
-        console.error(err);
-        if (err.response?.status === 404) setNotFound(true);
-      } finally {
-        setLoading(false);
+        setIsFollowing(Boolean(followRes.data.following));
       }
-    };
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 404) setNotFound(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadProfile();
-  }, [username, token, currentUser, navigate, isOwnProfile]);
+  useEffect(() => {
+    fetchProfile();
+  }, [username, token, currentUser]);
 
-  // Save profile changes
   const handleEditToggle = async () => {
     if (!userProfile) return;
 
@@ -80,14 +77,11 @@ export default function Profile() {
           avatar: userProfile.avatar,
           banner: userProfile.banner,
         };
-
         const res = await axios.put(`${API_URL}/api/users/me`, updated, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         setUserProfile(res.data);
 
-        // Update localStorage & auth context
         const saved = localStorage.getItem("user");
         if (saved) {
           const merged = { ...JSON.parse(saved), ...res.data };
@@ -103,7 +97,6 @@ export default function Profile() {
     setEditing(!editing);
   };
 
-  // Upload helper
   const uploadFile = async (file, type) => {
     const formData = new FormData();
     formData.append(type, file);
@@ -114,54 +107,45 @@ export default function Profile() {
       return res.data[`${type}Url`] || null;
     } catch (err) {
       console.error(`Failed to upload ${type}`, err);
-      alert(`Failed to upload ${type}`);
       return null;
     }
   };
 
-  // Avatar change
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setUserProfile((u) => ({ ...u, avatar: URL.createObjectURL(file) })); // preview
+    setUserProfile((u) => ({ ...u, avatar: URL.createObjectURL(file) }));
     const uploadedUrl = await uploadFile(file, "avatar");
     if (uploadedUrl) setUserProfile((u) => ({ ...u, avatar: uploadedUrl }));
   };
 
-  // Banner change
   const handleBannerChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setUserProfile((u) => ({ ...u, banner: URL.createObjectURL(file) })); // preview
+    setUserProfile((u) => ({ ...u, banner: URL.createObjectURL(file) }));
     const uploadedUrl = await uploadFile(file, "banner");
     if (uploadedUrl) setUserProfile((u) => ({ ...u, banner: uploadedUrl }));
   };
 
-  // Follow / unfollow
   const handleFollowToggle = async () => {
     if (!userProfile) return;
     try {
       const url = isFollowing
         ? `${API_URL}/api/users/${userProfile.username}/unfollow`
         : `${API_URL}/api/users/${userProfile.username}/follow`;
-
       const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
       setIsFollowing(!isFollowing);
-
       if (res.data.currentUser) {
         localStorage.setItem("user", JSON.stringify(res.data.currentUser));
         setAuthUser?.(res.data.currentUser);
       }
     } catch (err) {
       console.error(err);
-      alert("Could not update follow status.");
     }
   };
 
-  // Post actions
-  const updatePost = (updatedPost) => {
-    setPosts((cur) => cur.map((p) => (p._id === updatedPost._id ? updatedPost : p)));
-  };
+  const updatePost = (updated) =>
+    setPosts((cur) => cur.map((p) => (p._id === updated._id ? updated : p)));
 
   const likePost = async (postId) => {
     try {
@@ -197,51 +181,31 @@ export default function Profile() {
     }
   };
 
-  // Loading / not found
   if (loading) return <p>Loading profile...</p>;
   if (notFound) return <p>User "{username}" not found.</p>;
   if (!userProfile) return null;
 
   return (
     <main className="profile-container">
-      {/* BANNER */}
       <div className="profile-banner">
         <img
           src={userProfile.banner || "/images/banner-placeholder.png"}
           onClick={() => isOwnProfile && editing && bannerInputRef.current.click()}
         />
-        {isOwnProfile && (
-          <input
-            ref={bannerInputRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={handleBannerChange}
-          />
-        )}
+        {isOwnProfile && <input ref={bannerInputRef} type="file" hidden accept="image/*" onChange={handleBannerChange} />}
       </div>
 
-      {/* HEADER */}
       <section className="profile-header">
         <div className="profile-avatar">
           <img
             src={userProfile.avatar || "/images/avatar-placeholder.png"}
             onClick={() => isOwnProfile && editing && avatarInputRef.current.click()}
           />
-          {isOwnProfile && (
-            <input
-              ref={avatarInputRef}
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={handleAvatarChange}
-            />
-          )}
+          {isOwnProfile && <input ref={avatarInputRef} type="file" hidden accept="image/*" onChange={handleAvatarChange} />}
         </div>
 
         <div className="profile-info">
           <h2>@{userProfile.username}</h2>
-
           {editing ? (
             <textarea ref={bioRef} defaultValue={userProfile.bio} className="bio-edit" />
           ) : (
@@ -249,18 +213,13 @@ export default function Profile() {
           )}
 
           {isOwnProfile ? (
-            <button className="edit-profile-button" onClick={handleEditToggle}>
-              {editing ? "Save Changes" : "Edit Profile"}
-            </button>
+            <button onClick={handleEditToggle}>{editing ? "Save Changes" : "Edit Profile"}</button>
           ) : (
-            <button className="edit-profile-button" onClick={handleFollowToggle}>
-              {isFollowing ? "Following" : "Follow"}
-            </button>
+            <button onClick={handleFollowToggle}>{isFollowing ? "Following" : "Follow"}</button>
           )}
         </div>
       </section>
 
-      {/* POSTS */}
       <section className="profile-posts">
         <h3>Posts</h3>
         <div className="posts-list">
@@ -269,43 +228,32 @@ export default function Profile() {
           ) : (
             posts.map((p) => (
               <article key={p._id} className="post">
-                <img className="post-avatar" src={p.author?.avatar || "/images/avatar-placeholder.png"} alt="" />
+                <img className="post-avatar" src={p.author?.avatar || "/images/avatar-placeholder.png"} alt="avatar" />
                 <div className="post-body">
                   <p>
                     <strong>{p.author?.username}</strong> —{" "}
                     <small>{new Date(p.createdAt).toLocaleString()}</small>
                   </p>
                   <p>{p.content}</p>
-
                   {p.media?.map((m, i) => {
                     if (!m) return null;
-                    const ext = m.split(".").pop();
-                    if (["mp4", "webm", "ogg"].includes(ext)) {
-                      return <video key={i} src={m} controls className="post-media" />;
-                    }
-                    return <img key={i} src={m} className="post-media" />;
+                    return m.match(/\.(mp4|webm|ogg)$/) ? (
+                      <video key={i} src={m} controls className="post-media" />
+                    ) : (
+                      <img key={i} src={m} className="post-media" />
+                    );
                   })}
 
                   <div className="post-actions">
-                    <button className="post-button" onClick={() => likePost(p._id)}>
-                      Like ({p.likes?.length || 0})
-                    </button>
-                    <button className="post-button" onClick={() => repostPost(p._id)}>
-                      Repost ({p.reposts?.length || 0})
-                    </button>
+                    <button onClick={() => likePost(p._id)}>Like ({p.likes?.length || 0})</button>
+                    <button onClick={() => repostPost(p._id)}>Repost ({p.reposts?.length || 0})</button>
                   </div>
 
-                  <div style={{ marginTop: 8 }}>
+                  <div>
                     <strong>Comments:</strong>
-                    {p.comments?.length ? (
-                      p.comments.map((c, i) => (
-                        <p key={i}>
-                          <strong>{c.author?.username}</strong>: {c.content}
-                        </p>
-                      ))
-                    ) : (
-                      <p>No comments</p>
-                    )}
+                    {p.comments?.length ? p.comments.map((c, i) => (
+                      <p key={i}><strong>{c.author?.username || "Unknown"}</strong>: {c.content}</p>
+                    )) : <p>No comments</p>}
 
                     {currentUser && (
                       <input

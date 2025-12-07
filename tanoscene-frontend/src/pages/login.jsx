@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { login as apiLogin } from "../common/auth.js";
 import { useAuth } from "../context/authprovider.jsx";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -22,8 +20,12 @@ export default function Login() {
 
     try {
       const userData = await apiLogin(form.username, form.password);
-      login(userData); // set context
-      navigate("/"); // redirect to home
+      if (userData?.user && userData?.token) {
+        login(userData); // update context & localStorage
+        navigate("/"); // redirect home
+      } else {
+        setError("Invalid login response");
+      }
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || err.message || "Login failed.");
