@@ -35,13 +35,6 @@ export default function FAQ() {
           answer="Yes, but only we know them."
         />
       </main>
-<<<<<<< HEAD
-=======
-
-      <footer>
-        <p>© 2025 TanoScene</p>
-      </footer>
->>>>>>> 050f1f0d7bdcbc2a1e372586587c46ddda71d38a
     </>
   );
 }
