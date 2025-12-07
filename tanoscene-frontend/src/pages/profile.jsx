@@ -30,17 +30,19 @@ export default function Profile() {
         setLoading(true);
         setNotFound(false);
 
-        // If not logged in and no username, redirect
         if (!token && !username) {
           navigate("/login");
           return;
         }
 
-        // Fetch profile
-        const profileRes = await axios.get(
-          username ? `${API_URL}/api/users/${username}` : "/api/users/me",
-          { headers: username ? {} : { Authorization: `Bearer ${token}` } }
-        );
+        // Determine API URL for user profile
+        const profileUrl = username
+          ? `${API_URL}/api/users/${username}`
+          : `${API_URL}/api/users/me`;
+
+        const profileRes = await axios.get(profileUrl, {
+          headers: { Authorization: token ? `Bearer ${token}` : "" },
+        });
         setUserProfile(profileRes.data);
 
         // Fetch posts
@@ -72,6 +74,7 @@ export default function Profile() {
   // EDIT PROFILE
   const handleEditToggle = async () => {
     if (!userProfile) return;
+
     if (editing) {
       try {
         const updated = {
@@ -96,6 +99,7 @@ export default function Profile() {
         console.error(err);
       }
     }
+
     setEditing(!editing);
   };
 
@@ -105,6 +109,7 @@ export default function Profile() {
     if (!file) return;
     setUserProfile((u) => ({ ...u, avatar: URL.createObjectURL(file) }));
   };
+
   const handleBannerChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -139,24 +144,38 @@ export default function Profile() {
 
   const likePost = async (postId) => {
     try {
-      const res = await axios.post(`${API_URL}/api/posts/${postId}/like`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(
+        `${API_URL}/api/posts/${postId}/like`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       updatePost(res.data);
     } catch (err) {
       console.error(err);
     }
   };
+
   const repostPost = async (postId) => {
     try {
-      const res = await axios.post(`${API_URL}/api/posts/${postId}/repost`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(
+        `${API_URL}/api/posts/${postId}/repost`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       updatePost(res.data);
     } catch (err) {
       console.error(err);
     }
   };
+
   const addComment = async (postId, content) => {
     if (!content.trim()) return;
     try {
-      const res = await axios.post(`${API_URL}/api/posts/${postId}/comment`, { content }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(
+        `${API_URL}/api/posts/${postId}/comment`,
+        { content },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       updatePost(res.data);
     } catch (err) {
       console.error(err);
@@ -240,8 +259,12 @@ export default function Profile() {
                   })}
 
                   <div className="post-actions">
-                    <button className="post-button" onClick={() => likePost(p._id)}>Like ({p.likes?.length || 0})</button>
-                    <button className="post-button" onClick={() => repostPost(p._id)}>Repost ({p.reposts?.length || 0})</button>
+                    <button className="post-button" onClick={() => likePost(p._id)}>
+                      Like ({p.likes?.length || 0})
+                    </button>
+                    <button className="post-button" onClick={() => repostPost(p._id)}>
+                      Repost ({p.reposts?.length || 0})
+                    </button>
                   </div>
 
                   <div style={{ marginTop: 8 }}>
