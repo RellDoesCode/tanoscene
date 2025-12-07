@@ -1,6 +1,5 @@
 // tanoscene-frontend/pages/home.jsx
 import React, { useState, useEffect } from "react";
-import Navbar from "../components/navbar.jsx";
 import axios from "axios";
 
 export default function Home() {
@@ -223,10 +222,6 @@ export default function Home() {
           )}
         </section>
       </main>
-
-      <footer>
-        <p>© 2025 TanoScene</p>
-      </footer>
     </>
   );
 }
