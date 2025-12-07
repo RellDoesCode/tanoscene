@@ -40,6 +40,13 @@ export default function About() {
           </ul>
         </section>
       </main>
+<<<<<<< HEAD
+=======
+
+      <footer>
+        <p>© 2025 TanoScene</p>
+      </footer>
+>>>>>>> 050f1f0d7bdcbc2a1e372586587c46ddda71d38a
     </>
   );
 }
