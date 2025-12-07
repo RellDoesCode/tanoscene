@@ -7,7 +7,7 @@ import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Profile() {
-  const { username } = useParams();
+  const { username } = useParams(); // undefined if visiting own profile
   const navigate = useNavigate();
   const { user: currentUser, login: setAuthUser } = useAuth() || {};
   const [userProfile, setUserProfile] = useState(null);
@@ -24,54 +24,52 @@ export default function Profile() {
   const token = localStorage.getItem("token");
   const isOwnProfile = !username || currentUser?.username === username;
 
-  // Helper to get auth headers
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
-
-  const fetchProfileAndPosts = async () => {
-    try {
-      setLoading(true);
-      setNotFound(false);
-
-      if (!token && !username) {
-        navigate("/login");
-        return;
-      }
-
-      // Fetch user profile
-      const profileUrl = isOwnProfile
-        ? `${API_URL}/api/users/me`
-        : `${API_URL}/api/users/${username}`;
-      const profileRes = await axios.get(profileUrl, { headers: authHeaders });
-      setUserProfile(profileRes.data);
-
-      // Fetch posts
-      const postsRes = await axios.get(
-        `${API_URL}/api/posts/user/${isOwnProfile ? currentUser.username : username}`,
-        { headers: authHeaders }
-      );
-      setPosts(postsRes.data);
-
-      // Fetch follow status if viewing another user
-      if (!isOwnProfile) {
-        const followRes = await axios.get(
-          `${API_URL}/api/users/${username}/isFollowing`,
-          { headers: authHeaders }
-        );
-        setIsFollowing(Boolean(followRes.data.following));
-      }
-    } catch (err) {
-      console.error(err);
-      if (err.response?.status === 404) setNotFound(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Load profile and posts
   useEffect(() => {
-    fetchProfileAndPosts();
-  }, [username, currentUser]);
+    const loadProfile = async () => {
+      try {
+        setLoading(true);
+        setNotFound(false);
 
-  // EDIT PROFILE
+        if (!token && !username) {
+          navigate("/login");
+          return;
+        }
+
+        const profileUrl = username
+          ? `${API_URL}/api/users/${username}`
+          : `${API_URL}/api/users/me`;
+
+        const profileRes = await axios.get(profileUrl, {
+          headers: { Authorization: token ? `Bearer ${token}` : "" },
+        });
+        setUserProfile(profileRes.data);
+
+        const postsRes = await axios.get(
+          `${API_URL}/api/posts/user/${username || currentUser.username}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setPosts(postsRes.data);
+
+        if (!isOwnProfile) {
+          const followRes = await axios.get(
+            `${API_URL}/api/users/${username}/isFollowing`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          setIsFollowing(Boolean(followRes.data.following));
+        }
+      } catch (err) {
+        console.error(err);
+        if (err.response?.status === 404) setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [username, token, currentUser, navigate, isOwnProfile]);
+
+  // Save profile changes
   const handleEditToggle = async () => {
     if (!userProfile) return;
 
@@ -82,38 +80,64 @@ export default function Profile() {
           avatar: userProfile.avatar,
           banner: userProfile.banner,
         };
+
         const res = await axios.put(`${API_URL}/api/users/me`, updated, {
-          headers: authHeaders,
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         setUserProfile(res.data);
 
-        // Update auth context and localStorage immediately
-        const merged = { ...currentUser, ...res.data };
-        localStorage.setItem("user", JSON.stringify(merged));
-        setAuthUser?.({ user: merged, token });
+        // Update localStorage & auth context
+        const saved = localStorage.getItem("user");
+        if (saved) {
+          const merged = { ...JSON.parse(saved), ...res.data };
+          localStorage.setItem("user", JSON.stringify(merged));
+          setAuthUser?.(merged);
+        }
       } catch (err) {
         console.error(err);
+        alert("Failed to update profile.");
       }
     }
 
     setEditing(!editing);
   };
 
-  // PREVIEW AVATAR/BANNER
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUserProfile((u) => ({ ...u, avatar: URL.createObjectURL(file) }));
+  // Upload helper
+  const uploadFile = async (file, type) => {
+    const formData = new FormData();
+    formData.append(type, file);
+    try {
+      const res = await axios.post(`${API_URL}/api/users/me/${type}`, formData, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+      });
+      return res.data[`${type}Url`] || null;
+    } catch (err) {
+      console.error(`Failed to upload ${type}`, err);
+      alert(`Failed to upload ${type}`);
+      return null;
+    }
   };
 
-  const handleBannerChange = (e) => {
+  // Avatar change
+  const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setUserProfile((u) => ({ ...u, banner: URL.createObjectURL(file) }));
+    setUserProfile((u) => ({ ...u, avatar: URL.createObjectURL(file) })); // preview
+    const uploadedUrl = await uploadFile(file, "avatar");
+    if (uploadedUrl) setUserProfile((u) => ({ ...u, avatar: uploadedUrl }));
   };
 
-  // FOLLOW / UNFOLLOW
+  // Banner change
+  const handleBannerChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUserProfile((u) => ({ ...u, banner: URL.createObjectURL(file) })); // preview
+    const uploadedUrl = await uploadFile(file, "banner");
+    if (uploadedUrl) setUserProfile((u) => ({ ...u, banner: uploadedUrl }));
+  };
+
+  // Follow / unfollow
   const handleFollowToggle = async () => {
     if (!userProfile) return;
     try {
@@ -121,34 +145,29 @@ export default function Profile() {
         ? `${API_URL}/api/users/${userProfile.username}/unfollow`
         : `${API_URL}/api/users/${userProfile.username}/follow`;
 
-      const res = await axios.post(url, {}, { headers: authHeaders });
+      const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
       setIsFollowing(!isFollowing);
 
       if (res.data.currentUser) {
         localStorage.setItem("user", JSON.stringify(res.data.currentUser));
-        setAuthUser?.({ user: res.data.currentUser, token });
+        setAuthUser?.(res.data.currentUser);
       }
-
-      // Refresh posts to reflect follow changes if necessary
-      fetchProfileAndPosts();
     } catch (err) {
       console.error(err);
       alert("Could not update follow status.");
     }
   };
 
-  // POST ACTIONS
+  // Post actions
   const updatePost = (updatedPost) => {
     setPosts((cur) => cur.map((p) => (p._id === updatedPost._id ? updatedPost : p)));
   };
 
   const likePost = async (postId) => {
     try {
-      const res = await axios.post(
-        `${API_URL}/api/posts/${postId}/like`,
-        {},
-        { headers: authHeaders }
-      );
+      const res = await axios.post(`${API_URL}/api/posts/${postId}/like`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       updatePost(res.data);
     } catch (err) {
       console.error(err);
@@ -157,11 +176,9 @@ export default function Profile() {
 
   const repostPost = async (postId) => {
     try {
-      const res = await axios.post(
-        `${API_URL}/api/posts/${postId}/repost`,
-        {},
-        { headers: authHeaders }
-      );
+      const res = await axios.post(`${API_URL}/api/posts/${postId}/repost`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       updatePost(res.data);
     } catch (err) {
       console.error(err);
@@ -171,17 +188,16 @@ export default function Profile() {
   const addComment = async (postId, content) => {
     if (!content.trim()) return;
     try {
-      const res = await axios.post(
-        `${API_URL}/api/posts/${postId}/comment`,
-        { content },
-        { headers: authHeaders }
-      );
+      const res = await axios.post(`${API_URL}/api/posts/${postId}/comment`, { content }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       updatePost(res.data);
     } catch (err) {
       console.error(err);
     }
   };
 
+  // Loading / not found
   if (loading) return <p>Loading profile...</p>;
   if (notFound) return <p>User "{username}" not found.</p>;
   if (!userProfile) return null;
@@ -253,7 +269,7 @@ export default function Profile() {
           ) : (
             posts.map((p) => (
               <article key={p._id} className="post">
-                <img className="post-avatar" src={p.author?.avatar} alt="" />
+                <img className="post-avatar" src={p.author?.avatar || "/images/avatar-placeholder.png"} alt="" />
                 <div className="post-body">
                   <p>
                     <strong>{p.author?.username}</strong> —{" "}
@@ -262,6 +278,7 @@ export default function Profile() {
                   <p>{p.content}</p>
 
                   {p.media?.map((m, i) => {
+                    if (!m) return null;
                     const ext = m.split(".").pop();
                     if (["mp4", "webm", "ogg"].includes(ext)) {
                       return <video key={i} src={m} controls className="post-media" />;
