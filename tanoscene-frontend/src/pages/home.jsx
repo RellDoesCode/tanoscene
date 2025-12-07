@@ -14,7 +14,7 @@ export default function Home() {
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("/api/posts/feed", {
+      const res = await axios.get(`${API_URL}/api/posts/feed`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setPosts(res.data);
@@ -62,7 +62,7 @@ export default function Home() {
   // Like post
   const likePost = async (id) => {
     try {
-      const res = await axios.post(`/api/posts/${id}/like`, {}, {
+      const res = await axios.post(`${API_URL}/api/posts/${id}/like`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       updatePost(res.data);
@@ -74,7 +74,7 @@ export default function Home() {
   // Repost post
   const repostPost = async (id) => {
     try {
-      const res = await axios.post(`/api/posts/${id}/repost`, {}, {
+      const res = await axios.post(`${API_URL}/api/posts/${id}/repost`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       updatePost(res.data);
@@ -88,7 +88,7 @@ export default function Home() {
     if (!content || !content.trim()) return;
     try {
       const res = await axios.post(
-        `/api/posts/${postId}/comment`,
+        `${API_URL}/api/posts/${postId}/comment`,
         { content },
         { headers: { Authorization: `Bearer ${token}` } }
       );

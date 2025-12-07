@@ -24,7 +24,7 @@ const uploadBufferToGridFS = (buffer, filename, contentType) => {
           console.error("GridFS upload finished WITHOUT file info:", file);
           return reject(new Error("GridFS upload failed — no file returned"));
         }
-        resolve(`/api/media/${file._id.toString()}`);
+        resolve(`${process.env.BASE_URL}/api/media/${file._id.toString()}`);
       });
 
       uploadStream.write(buffer);

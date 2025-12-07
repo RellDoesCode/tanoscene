@@ -36,14 +36,14 @@ export default function Profile() {
 
         // Fetch profile
         const profileRes = await axios.get(
-          username ? `/api/users/${username}` : "/api/users/me",
+          username ? `${API_URL}/api/users/${username}` : "/api/users/me",
           { headers: username ? {} : { Authorization: `Bearer ${token}` } }
         );
         setUserProfile(profileRes.data);
 
         // Fetch posts
         const postsRes = await axios.get(
-          `/api/posts/user/${username || currentUser.username}`,
+          `${API_URL}/api/posts/user/${username || currentUser.username}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setPosts(postsRes.data);
@@ -51,7 +51,7 @@ export default function Profile() {
         // Fetch follow state if viewing someone else's profile
         if (!isOwnProfile) {
           const followRes = await axios.get(
-            `/api/users/${username}/isFollowing`,
+            `${API_URL}/api/users/${username}/isFollowing`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           setIsFollowing(Boolean(followRes.data.following));
@@ -77,7 +77,7 @@ export default function Profile() {
           avatar: userProfile.avatar,
           banner: userProfile.banner,
         };
-        const res = await axios.put("/api/users/me", updated, {
+        const res = await axios.put(`${API_URL}/api/users/me`, updated, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -114,8 +114,8 @@ export default function Profile() {
     if (!userProfile) return;
     try {
       const url = isFollowing
-        ? `/api/users/${userProfile.username}/unfollow`
-        : `/api/users/${userProfile.username}/follow`;
+        ? `${API_URL}/api/users/${userProfile.username}/unfollow`
+        : `${API_URL}/api/users/${userProfile.username}/follow`;
 
       const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
       setIsFollowing(!isFollowing);
@@ -137,7 +137,7 @@ export default function Profile() {
 
   const likePost = async (postId) => {
     try {
-      const res = await axios.post(`/api/posts/${postId}/like`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(`${API_URL}/api/posts/${postId}/like`, {}, { headers: { Authorization: `Bearer ${token}` } });
       updatePost(res.data);
     } catch (err) {
       console.error(err);
@@ -145,7 +145,7 @@ export default function Profile() {
   };
   const repostPost = async (postId) => {
     try {
-      const res = await axios.post(`/api/posts/${postId}/repost`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(`${API_URL}/api/posts/${postId}/repost`, {}, { headers: { Authorization: `Bearer ${token}` } });
       updatePost(res.data);
     } catch (err) {
       console.error(err);
@@ -154,7 +154,7 @@ export default function Profile() {
   const addComment = async (postId, content) => {
     if (!content.trim()) return;
     try {
-      const res = await axios.post(`/api/posts/${postId}/comment`, { content }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(`${API_URL}/api/posts/${postId}/comment`, { content }, { headers: { Authorization: `Bearer ${token}` } });
       updatePost(res.data);
     } catch (err) {
       console.error(err);

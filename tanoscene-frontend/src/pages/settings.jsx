@@ -20,7 +20,7 @@ export default function Settings() {
     e.preventDefault();
     try {
       const res = await axios.put(
-        "/api/users/me",
+        `${API_URL}/api/users/me`,
         { username: form.username, bio: form.bio },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
