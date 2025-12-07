@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/authprovider.jsx";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function Settings() {
   const { user, setUser } = useAuth(); // get logged-in user from context
   const [form, setForm] = useState({ username: "", bio: "" });

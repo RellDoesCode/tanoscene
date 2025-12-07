@@ -4,6 +4,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authprovider.jsx";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function Profile() {
   const { username } = useParams(); // undefined if visiting own profile
   const navigate = useNavigate();

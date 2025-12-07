@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function Home() {
   const [posts, setPosts] = useState([]);
   const [text, setText] = useState("");
