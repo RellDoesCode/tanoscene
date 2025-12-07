@@ -7,7 +7,7 @@ import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Profile() {
-  const { username } = useParams(); // undefined if visiting own profile
+  const { username } = useParams();
   const navigate = useNavigate();
   const { user: currentUser, login: setAuthUser } = useAuth() || {};
   const [userProfile, setUserProfile] = useState(null);
@@ -24,52 +24,52 @@ export default function Profile() {
   const token = localStorage.getItem("token");
   const isOwnProfile = !username || currentUser?.username === username;
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        setLoading(true);
-        setNotFound(false);
+  // Helper to get auth headers
+  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
-        if (!token && !username) {
-          navigate("/login");
-          return;
-        }
+  const fetchProfileAndPosts = async () => {
+    try {
+      setLoading(true);
+      setNotFound(false);
 
-        // Determine API URL for user profile
-        const profileUrl = username
-          ? `${API_URL}/api/users/${username}`
-          : `${API_URL}/api/users/me`;
-
-        const profileRes = await axios.get(profileUrl, {
-          headers: { Authorization: token ? `Bearer ${token}` : "" },
-        });
-        setUserProfile(profileRes.data);
-
-        // Fetch posts
-        const postsRes = await axios.get(
-          `${API_URL}/api/posts/user/${username || currentUser.username}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setPosts(postsRes.data);
-
-        // Fetch follow state if viewing someone else's profile
-        if (!isOwnProfile) {
-          const followRes = await axios.get(
-            `${API_URL}/api/users/${username}/isFollowing`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          setIsFollowing(Boolean(followRes.data.following));
-        }
-      } catch (err) {
-        console.error(err);
-        if (err.response?.status === 404) setNotFound(true);
-      } finally {
-        setLoading(false);
+      if (!token && !username) {
+        navigate("/login");
+        return;
       }
-    };
 
-    loadProfile();
-  }, [username, token, currentUser, navigate, isOwnProfile]);
+      // Fetch user profile
+      const profileUrl = isOwnProfile
+        ? `${API_URL}/api/users/me`
+        : `${API_URL}/api/users/${username}`;
+      const profileRes = await axios.get(profileUrl, { headers: authHeaders });
+      setUserProfile(profileRes.data);
+
+      // Fetch posts
+      const postsRes = await axios.get(
+        `${API_URL}/api/posts/user/${isOwnProfile ? currentUser.username : username}`,
+        { headers: authHeaders }
+      );
+      setPosts(postsRes.data);
+
+      // Fetch follow status if viewing another user
+      if (!isOwnProfile) {
+        const followRes = await axios.get(
+          `${API_URL}/api/users/${username}/isFollowing`,
+          { headers: authHeaders }
+        );
+        setIsFollowing(Boolean(followRes.data.following));
+      }
+    } catch (err) {
+      console.error(err);
+      if (err.response?.status === 404) setNotFound(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfileAndPosts();
+  }, [username, currentUser]);
 
   // EDIT PROFILE
   const handleEditToggle = async () => {
@@ -83,18 +83,15 @@ export default function Profile() {
           banner: userProfile.banner,
         };
         const res = await axios.put(`${API_URL}/api/users/me`, updated, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: authHeaders,
         });
 
         setUserProfile(res.data);
 
-        // update local storage & auth context
-        const saved = localStorage.getItem("user");
-        if (saved) {
-          const merged = { ...JSON.parse(saved), ...res.data };
-          localStorage.setItem("user", JSON.stringify(merged));
-          setAuthUser?.(merged);
-        }
+        // Update auth context and localStorage immediately
+        const merged = { ...currentUser, ...res.data };
+        localStorage.setItem("user", JSON.stringify(merged));
+        setAuthUser?.({ user: merged, token });
       } catch (err) {
         console.error(err);
       }
@@ -124,13 +121,16 @@ export default function Profile() {
         ? `${API_URL}/api/users/${userProfile.username}/unfollow`
         : `${API_URL}/api/users/${userProfile.username}/follow`;
 
-      const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(url, {}, { headers: authHeaders });
       setIsFollowing(!isFollowing);
 
       if (res.data.currentUser) {
         localStorage.setItem("user", JSON.stringify(res.data.currentUser));
-        setAuthUser?.(res.data.currentUser);
+        setAuthUser?.({ user: res.data.currentUser, token });
       }
+
+      // Refresh posts to reflect follow changes if necessary
+      fetchProfileAndPosts();
     } catch (err) {
       console.error(err);
       alert("Could not update follow status.");
@@ -147,7 +147,7 @@ export default function Profile() {
       const res = await axios.post(
         `${API_URL}/api/posts/${postId}/like`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: authHeaders }
       );
       updatePost(res.data);
     } catch (err) {
@@ -160,7 +160,7 @@ export default function Profile() {
       const res = await axios.post(
         `${API_URL}/api/posts/${postId}/repost`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: authHeaders }
       );
       updatePost(res.data);
     } catch (err) {
@@ -174,7 +174,7 @@ export default function Profile() {
       const res = await axios.post(
         `${API_URL}/api/posts/${postId}/comment`,
         { content },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: authHeaders }
       );
       updatePost(res.data);
     } catch (err) {
@@ -182,7 +182,6 @@ export default function Profile() {
     }
   };
 
-  // Loading / Not found
   if (loading) return <p>Loading profile...</p>;
   if (notFound) return <p>User "{username}" not found.</p>;
   if (!userProfile) return null;
@@ -196,7 +195,13 @@ export default function Profile() {
           onClick={() => isOwnProfile && editing && bannerInputRef.current.click()}
         />
         {isOwnProfile && (
-          <input ref={bannerInputRef} type="file" accept="image/*" hidden onChange={handleBannerChange} />
+          <input
+            ref={bannerInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleBannerChange}
+          />
         )}
       </div>
 
@@ -208,7 +213,13 @@ export default function Profile() {
             onClick={() => isOwnProfile && editing && avatarInputRef.current.click()}
           />
           {isOwnProfile && (
-            <input ref={avatarInputRef} type="file" accept="image/*" hidden onChange={handleAvatarChange} />
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handleAvatarChange}
+            />
           )}
         </div>
 
