@@ -42,7 +42,7 @@ export default function Profile() {
           : `${API_URL}/api/users/me`;
 
         const profileRes = await axios.get(profileUrl, {
-          headers: authHeader,
+          headers: { Authorization: token ? `Bearer ${token}` : "" },
         });
 
         setUserProfile(profileRes.data);
@@ -57,7 +57,7 @@ export default function Profile() {
         if (!isOwnProfile && validToken) {
           const followRes = await axios.get(
             `${API_URL}/api/users/${username}/isFollowing`,
-            { headers: authHeader }
+            { headers: {Authorization: `Bearer ${token}`} }
           );
           setIsFollowing(Boolean(followRes.data.following));
         }
