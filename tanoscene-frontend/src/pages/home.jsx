@@ -1,3 +1,4 @@
+// frontend/src/pages/home.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -12,13 +13,12 @@ export default function Home() {
   const token = localStorage.getItem("token");
 
   const fetchPosts = async () => {
-    if (!token) return;
     try {
       setLoading(true);
       const res = await axios.get(`${API_URL}/api/posts/feed`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setPosts(res.data || []);
+      setPosts(res.data);
     } catch (err) {
       console.error("Failed to fetch posts:", err);
     } finally {
@@ -33,6 +33,7 @@ export default function Home() {
   const createPost = async (e) => {
     e.preventDefault();
     if (!text && !file) return;
+
     try {
       const formData = new FormData();
       formData.append("content", text);
@@ -53,8 +54,9 @@ export default function Home() {
     }
   };
 
-  const updatePost = (updated) =>
+  const updatePost = (updated) => {
     setPosts((cur) => cur.map((p) => (p._id === updated._id ? updated : p)));
+  };
 
   const likePost = async (id) => {
     try {
@@ -79,84 +81,117 @@ export default function Home() {
   };
 
   const addComment = async (postId, content) => {
-    if (!content?.trim()) return;
+    if (!content || !content.trim()) return;
     try {
-      const res = await axios.post(`${API_URL}/api/posts/${postId}/comment`, { content }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await axios.post(
+        `${API_URL}/api/posts/${postId}/comment`,
+        { content },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       updatePost(res.data);
     } catch (err) {
       console.error("Add comment failed:", err);
     }
   };
 
-  const isVideo = (url) => /\.(mp4|webm|ogg)$/i.test(url) || url?.includes("/api/media/");
+  const renderMedia = (url, i) => {
+    if (!url) return null;
+    const ext = url.split(".").pop().toLowerCase();
+    if (["mp4","webm","ogg"].includes(ext)) {
+      return <video key={i} src={url} controls className="post-media" style={{ maxWidth: "100%" }} />;
+    }
+    return <img key={i} src={url} alt="" className="post-media" style={{ maxWidth: "100%" }} />;
+  };
 
   return (
-    <main className="home-container">
+    <main className="home-container" id="home-page">
+      {/* CREATE POST */}
       <section className="create-post">
         <h2>Create a Post</h2>
-        <form onSubmit={createPost}>
+        <form onSubmit={createPost} encType="multipart/form-data">
           <textarea
+            className="post-input"
             placeholder="What's on your mind?"
-            rows={3}
+            rows="3"
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          <input type="file" accept="image/*,video/*,.gif" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-          {file && <span>{file.name}</span>}
-          <button type="submit">Post</button>
+          <div style={{ marginTop: 8 }}>
+            <input
+              type="file"
+              name="media"
+              accept="image/*,video/*,.gif"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+            />
+            {file && <span style={{ marginLeft: 8 }}>{file.name}</span>}
+          </div>
+          <button className="post-button" style={{ marginTop: 8 }}>Post</button>
         </form>
       </section>
 
+      {/* FEED */}
       <section className="feed">
         {loading ? (
           <p>Loading posts...</p>
-        ) : posts.length === 0 ? (
-          <p>No posts yet.</p>
         ) : (
-          posts.map((p) => (
-            <article key={p._id} className="post">
-              <img className="post-avatar" src={p.author?.avatar || "/images/avatar-placeholder.png"} alt="avatar" />
-              <div className="post-body">
-                <p>
-                  <strong>{p.author?.username}</strong> —{" "}
-                  <small>{new Date(p.createdAt).toLocaleString()}</small>
-                </p>
-                <p>{p.content}</p>
+          <div className="posts-list">
+            {posts.length === 0 ? (
+              <p>No posts yet.</p>
+            ) : (
+              posts.map((p) => (
+                <article key={p._id} className="post">
+                  <img
+                    className="post-avatar"
+                    src={p.author?.avatar || "/images/avatar-placeholder.png"}
+                    alt="avatar"
+                  />
+                  <div className="post-body">
+                    <p>
+                      <strong>{p.author?.username}</strong> —{" "}
+                      <small>{new Date(p.createdAt).toLocaleString()}</small>
+                    </p>
 
-                {p.media?.map((m, i) => isVideo(m) ? (
-                  <video key={i} src={m} controls style={{ maxWidth: "100%" }} />
-                ) : (
-                  <img key={i} src={m} alt="media" style={{ maxWidth: "100%" }} />
-                ))}
+                    <p>{p.content}</p>
 
-                <div className="post-actions">
-                  <button onClick={() => likePost(p._id)}>Like ({p.likes?.length || 0})</button>
-                  <button onClick={() => repostPost(p._id)}>Repost ({p.reposts?.length || 0})</button>
-                </div>
+                    {p.media?.map(renderMedia)}
 
-                <div>
-                  <strong>Comments:</strong>
-                  {p.comments?.length ? p.comments.map((c, i) => (
-                    <p key={i}><strong>{c.author?.username || "Unknown"}</strong>: {c.content}</p>
-                  )) : <p>No comments</p>}
+                    <div className="post-actions" style={{ marginTop: 8 }}>
+                      <button className="post-button" onClick={() => likePost(p._id)}>
+                        Like ({p.likes?.length || 0})
+                      </button>
+                      <button className="post-button" onClick={() => repostPost(p._id)}>
+                        Repost ({p.reposts?.length || 0})
+                      </button>
+                    </div>
 
-                  {token && (
-                    <input
-                      placeholder="Add a comment..."
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          addComment(p._id, e.target.value);
-                          e.target.value = "";
-                        }
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            </article>
-          ))
+                    <div style={{ marginTop: 8 }}>
+                      <strong>Comments:</strong>
+                      {p.comments?.length ? (
+                        p.comments.map((c, i) => (
+                          <p key={i}>
+                            <strong>{c.author?.username || "Unknown"}</strong>: {c.content}
+                          </p>
+                        ))
+                      ) : (
+                        <p>No comments</p>
+                      )}
+                      {token && (
+                        <input
+                          placeholder="Add a comment..."
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              addComment(p._id, e.target.value);
+                              e.target.value = "";
+                            }
+                          }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
         )}
       </section>
     </main>
