@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signup } from "../common/auth.js";
+import { useAuth } from "../context/authprovider";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState(null);
 
@@ -15,7 +17,8 @@ export default function Signup() {
     setError(null);
 
     try {
-      await signup(form.username, form.email, form.password);
+      const data = await signup(form.username, form.email, form.password);
+      login(data);
       navigate("/profile");
     } catch (err) {
       console.error(err);
@@ -33,7 +36,7 @@ export default function Signup() {
         <input name="username" value={form.username} onChange={handleChange} />
 
         <label>Email:</label>
-        <input name="email" value={form.email} onChange={handleChange} />
+        <input name="email" type="email" value={form.email} onChange={handleChange} />
 
         <label>Password:</label>
         <input
