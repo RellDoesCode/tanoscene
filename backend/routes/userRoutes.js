@@ -1,9 +1,8 @@
-// backend/routes/userRoutes.js
 import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { getUserById, updateUserById } from "../controllers/userController.js";
+import { updateProfile } from "../controllers/userController.js";
 import { protect as authenticateToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -17,7 +16,7 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    const uniqueName = `${req.user.id}-${Date.now()}${ext}`;
+    const uniqueName = `${req.user._id}-${Date.now()}${ext}`;
     cb(null, uniqueName);
   },
 });
@@ -25,33 +24,51 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Upload avatar
-router.post("/me/avatar", authenticateToken, upload.single("avatar"), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded." });
+router.post(
+  "/me/avatar",
+  authenticateToken,
+  upload.single("avatar"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded." });
+      }
 
-    const avatarUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-    const updatedUser = await updateUserById(req.user.id, { avatar: avatarUrl });
+      const avatarUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+      
+      req.body.avatar = avatarUrl;
 
-    res.json({ avatarUrl, user: updatedUser });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to upload avatar." });
+      const updatedUser = await updateProfile(req, res);
+      return updatedUser;
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to upload avatar." });
+    }
   }
-});
+);
 
 // Upload banner
-router.post("/me/banner", authenticateToken, upload.single("banner"), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded." });
+router.post(
+  "/me/banner",
+  authenticateToken,
+  upload.single("banner"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded." });
+      }
 
-    const bannerUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-    const updatedUser = await updateUserById(req.user.id, { banner: bannerUrl });
+      const bannerUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
 
-    res.json({ bannerUrl, user: updatedUser });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to upload banner." });
+      req.body.banner = bannerUrl;
+
+      const updatedUser = await updateProfile(req, res);
+      return updatedUser;
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to upload banner." });
+    }
   }
-});
+);
 
 export default router;
