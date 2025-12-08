@@ -30,6 +30,11 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+/* LOGIN & REGISTER ROUTES */
+router.post("/login", loginUser);
+router.post("/register", registerUser);
+
+
 /* AUTH USER PROFILE ROUTE */
 router.get("/me", protect, getMe);
 
