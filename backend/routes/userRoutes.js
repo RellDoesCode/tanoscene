@@ -2,8 +2,15 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { updateProfile } from "../controllers/userController.js";
-import { protect as authenticateToken } from "../middleware/authMiddleware.js";
+import {
+  getMe,
+  getUserByUsername,
+  updateProfile,
+  followUser,
+  unfollowUser,
+  checkFollowingStatus,
+} from "../controllers/userController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -18,57 +25,26 @@ const storage = multer.diskStorage({
     const ext = path.extname(file.originalname);
     const uniqueName = `${req.user._id}-${Date.now()}${ext}`;
     cb(null, uniqueName);
-  },
+  }
 });
 
 const upload = multer({ storage });
 
-// Upload avatar
-router.post(
-  "/me/avatar",
-  authenticateToken,
-  upload.single("avatar"),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded." });
-      }
+/* AUTH USER PROFILE ROUTE */
+router.get("/me", protect, getMe);
 
-      const avatarUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-      
-      req.body.avatar = avatarUrl;
+/* GET USER PROFILE BY USERNAME */
+router.get("/:username", protect, getUserByUsername);
 
-      const updatedUser = await updateProfile(req, res);
-      return updatedUser;
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Failed to upload avatar." });
-    }
-  }
-);
+/* UPDATE PROFILE */
+router.put("/me", protect, upload.fields([
+  { name: "avatar", maxCount: 1 },
+  { name: "banner", maxCount: 1 }
+]), updateProfile);
 
-// Upload banner
-router.post(
-  "/me/banner",
-  authenticateToken,
-  upload.single("banner"),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded." });
-      }
-
-      const bannerUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-
-      req.body.banner = bannerUrl;
-
-      const updatedUser = await updateProfile(req, res);
-      return updatedUser;
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: "Failed to upload banner." });
-    }
-  }
-);
+/* FOLLOW SYSTEM */
+router.post("/:username/follow", protect, followUser);
+router.post("/:username/unfollow", protect, unfollowUser);
+router.get("/:username/isFollowing", protect, checkFollowingStatus);
 
 export default router;

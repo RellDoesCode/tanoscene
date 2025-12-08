@@ -7,7 +7,7 @@ import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Profile() {
-  const { username } = useParams(); // undefined if visiting own profile
+  const { username } = useParams();
   const navigate = useNavigate();
   const { user: currentUser, login: setAuthUser } = useAuth() || {};
   const [userProfile, setUserProfile] = useState(null);
@@ -24,7 +24,6 @@ export default function Profile() {
   const token = localStorage.getItem("token");
   const isOwnProfile = !username || currentUser?.username === username;
 
-  // Load profile and posts
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -69,7 +68,6 @@ export default function Profile() {
     loadProfile();
   }, [username, token, currentUser, navigate, isOwnProfile]);
 
-  // Toggle editing / save profile
   const handleEditToggle = async () => {
     if (!userProfile) return;
 
@@ -97,7 +95,6 @@ export default function Profile() {
     setEditing(!editing);
   };
 
-  // Handle avatar change
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -109,7 +106,6 @@ export default function Profile() {
     }));
   };
 
-  // Handle banner change
   const handleBannerChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -121,7 +117,6 @@ export default function Profile() {
     }));
   };
 
-  // Follow / unfollow
   const handleFollowToggle = async () => {
     if (!userProfile) return;
     try {
@@ -142,7 +137,6 @@ export default function Profile() {
     }
   };
 
-  // Post actions
   const updatePost = (updatedPost) => {
     setPosts((cur) => cur.map((p) => (p._id === updatedPost._id ? updatedPost : p)));
   };
@@ -181,14 +175,12 @@ export default function Profile() {
     }
   };
 
-  // Loading / not found
   if (loading) return <p>Loading profile...</p>;
   if (notFound) return <p>User "{username}" not found.</p>;
   if (!userProfile) return null;
 
   return (
     <main className="profile-container">
-      {/* BANNER */}
       <div className="profile-banner">
         <img
           src={userProfile.banner || "/images/banner-placeholder.png"}
@@ -205,7 +197,6 @@ export default function Profile() {
         )}
       </div>
 
-      {/* HEADER */}
       <section className="profile-header">
         <div className="profile-avatar">
           <img
@@ -226,6 +217,11 @@ export default function Profile() {
         <div className="profile-info">
           <h2>@{userProfile.username}</h2>
 
+          {/* ADDED FOLLOW COUNTS (NO STYLE CHANGES) */}
+          <p className="bio">
+            Followers: {userProfile.followers?.length || 0} • Following: {userProfile.following?.length || 0}
+          </p>
+
           {editing ? (
             <textarea ref={bioRef} defaultValue={userProfile.bio} className="bio-edit" />
           ) : (
@@ -244,7 +240,6 @@ export default function Profile() {
         </div>
       </section>
 
-      {/* POSTS */}
       <section className="profile-posts">
         <h3>Posts</h3>
         <div className="posts-list">
@@ -265,13 +260,15 @@ export default function Profile() {
                   </p>
                   <p>{p.content}</p>
 
+                  {/* FIXED MEDIA URL TO /api/media/:id */}
                   {p.media?.map((m, i) => {
                     if (!m) return null;
+                    const mediaUrl = `${API_URL}/api/media/${m}`;
                     const ext = m.split(".").pop();
                     if (["mp4", "webm", "ogg"].includes(ext)) {
-                      return <video key={i} src={m} controls className="post-media" />;
+                      return <video key={i} src={mediaUrl} controls className="post-media" />;
                     }
-                    return <img key={i} src={m} className="post-media" />;
+                    return <img key={i} src={mediaUrl} className="post-media" />;
                   })}
 
                   <div className="post-actions">
