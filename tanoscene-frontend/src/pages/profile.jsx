@@ -7,7 +7,7 @@ import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Profile() {
-  const { username } = useParams();
+  const { username } = useParams(); // undefined if visiting own profile
   const navigate = useNavigate();
   const { user: currentUser, login: setAuthUser } = useAuth() || {};
   const [userProfile, setUserProfile] = useState(null);
@@ -24,7 +24,7 @@ export default function Profile() {
   const token = localStorage.getItem("token");
   const isOwnProfile = !username || currentUser?.username === username;
 
-  // Load profile
+  // Load profile and posts
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -69,70 +69,59 @@ export default function Profile() {
     loadProfile();
   }, [username, token, currentUser, navigate, isOwnProfile]);
 
-  // Edit profile
+  // Toggle editing / save profile
   const handleEditToggle = async () => {
     if (!userProfile) return;
 
     if (editing) {
       try {
-        const updated = {
-          bio: bioRef.current?.value,
-          avatar: userProfile.avatar,
-          banner: userProfile.banner,
-        };
+        const formData = new FormData();
+        if (bioRef.current) formData.append("bio", bioRef.current.value);
 
-        const res = await axios.put(`${API_URL}/api/users/me`, updated, {
-          headers: { Authorization: `Bearer ${token}` },
+        if (userProfile.avatarFile) formData.append("avatar", userProfile.avatarFile);
+        if (userProfile.bannerFile) formData.append("banner", userProfile.bannerFile);
+
+        const res = await axios.put(`${API_URL}/api/users/me`, formData, {
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
         });
 
-        setUserProfile(res.data);
-
-        const saved = localStorage.getItem("user");
-        if (saved) {
-          const merged = { ...JSON.parse(saved), ...res.data };
-          localStorage.setItem("user", JSON.stringify(merged));
-          setAuthUser?.(merged);
-        }
+        setUserProfile({ ...res.data });
+        setAuthUser?.(res.data);
+        localStorage.setItem("user", JSON.stringify(res.data));
       } catch (err) {
         console.error(err);
-        alert("Failed to update profile.");
+        alert("Failed to save profile changes.");
       }
     }
 
     setEditing(!editing);
   };
 
-  const uploadFile = async (file, type) => {
-    const formData = new FormData();
-    formData.append(type, file);
-    try {
-      const res = await axios.post(`${API_URL}/api/users/me/${type}`, formData, {
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
-      });
-      return res.data[`${type}Url`] || null;
-    } catch (err) {
-      console.error(`Failed to upload ${type}`, err);
-      alert(`Failed to upload ${type}`);
-      return null;
-    }
-  };
-
-  const handleAvatarChange = async (e) => {
+  // Handle avatar change
+  const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setUserProfile((u) => ({ ...u, avatar: URL.createObjectURL(file) }));
-    const uploadedUrl = await uploadFile(file, "avatar");
-    if (uploadedUrl) setUserProfile((u) => ({ ...u, avatar: uploadedUrl }));
+
+    setUserProfile((u) => ({
+      ...u,
+      avatar: URL.createObjectURL(file),
+      avatarFile: file,
+    }));
   };
 
-  const handleBannerChange = async (e) => {
+  // Handle banner change
+  const handleBannerChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setUserProfile((u) => ({ ...u, banner: URL.createObjectURL(file) }));
-    const uploadedUrl = await uploadFile(file, "banner");
-    if (uploadedUrl) setUserProfile((u) => ({ ...u, banner: uploadedUrl }));
+
+    setUserProfile((u) => ({
+      ...u,
+      banner: URL.createObjectURL(file),
+      bannerFile: file,
+    }));
   };
 
+  // Follow / unfollow
   const handleFollowToggle = async () => {
     if (!userProfile) return;
     try {
@@ -153,6 +142,7 @@ export default function Profile() {
     }
   };
 
+  // Post actions
   const updatePost = (updatedPost) => {
     setPosts((cur) => cur.map((p) => (p._id === updatedPost._id ? updatedPost : p)));
   };
@@ -191,6 +181,7 @@ export default function Profile() {
     }
   };
 
+  // Loading / not found
   if (loading) return <p>Loading profile...</p>;
   if (notFound) return <p>User "{username}" not found.</p>;
   if (!userProfile) return null;
@@ -276,7 +267,7 @@ export default function Profile() {
 
                   {p.media?.map((m, i) => {
                     if (!m) return null;
-                    const ext = m.split(".").pop().toLowerCase();
+                    const ext = m.split(".").pop();
                     if (["mp4", "webm", "ogg"].includes(ext)) {
                       return <video key={i} src={m} controls className="post-media" />;
                     }
@@ -297,7 +288,7 @@ export default function Profile() {
                     {p.comments?.length ? (
                       p.comments.map((c, i) => (
                         <p key={i}>
-                          <strong>{c.author?.username || "Unknown"}</strong>: {c.content}
+                          <strong>{c.author?.username}</strong>: {c.content}
                         </p>
                       ))
                     ) : (
