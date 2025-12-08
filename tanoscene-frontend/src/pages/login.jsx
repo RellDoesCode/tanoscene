@@ -10,8 +10,7 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,12 +19,8 @@ export default function Login() {
 
     try {
       const userData = await apiLogin(form.username, form.password);
-      if (userData?.user && userData?.token) {
-        login(userData); // update context & localStorage
-        navigate("/"); // redirect home
-      } else {
-        setError("Invalid login response");
-      }
+      login(userData);
+      navigate("/");
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || err.message || "Login failed.");
@@ -57,7 +52,7 @@ export default function Login() {
           disabled={loading}
         />
 
-        <button type="submit" disabled={loading}>
+        <button type="submit" className="auth-button" disabled={loading}>
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>

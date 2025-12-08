@@ -2,34 +2,25 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signup } from "../common/auth.js";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 export default function Signup() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
 
     try {
-      const userData = await signup(form.username, form.email, form.password);
-      if (userData?.user && userData?.token) {
-        localStorage.setItem("user", JSON.stringify(userData.user));
-        localStorage.setItem("token", userData.token);
-        navigate("/profile");
-      } else {
-        setError("Invalid signup response");
-      }
+      await signup(form.username, form.email, form.password);
+      navigate("/profile");
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || "Signup failed.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -53,9 +44,7 @@ export default function Signup() {
           onChange={handleChange}
         />
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Creating account..." : "Create Account"}
-        </button>
+        <button type="submit" className="auth-button">Create Account</button>
       </form>
     </div>
   );
