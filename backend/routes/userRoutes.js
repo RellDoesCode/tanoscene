@@ -4,7 +4,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { getUserById, updateUserById } from "../controllers/userController.js";
-import { authenticateToken } from "../middleware/authMiddleware.js";
+import { protect as authenticateToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
