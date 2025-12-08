@@ -42,7 +42,6 @@ export default function Home() {
       const res = await axios.post("/api/posts", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
         },
       });
 
