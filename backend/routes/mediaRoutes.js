@@ -4,14 +4,10 @@ import mongoose from "mongoose";
 
 const router = express.Router();
 
-// Serve media by GridFS ID
-router.get("/:id", async (req, res) => {
+// Serve media by filename
+router.get("/:filename", async (req, res) => {
   try {
-    const fileId = req.params.id;
-
-    if (!mongoose.Types.ObjectId.isValid(fileId)) {
-      return res.status(400).json({ message: "Invalid file id" });
-    }
+    const filename = req.params.filename;
 
     // Match the bucket name used in postController.js
     const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
@@ -19,7 +15,7 @@ router.get("/:id", async (req, res) => {
     });
 
     const filesColl = mongoose.connection.db.collection("uploads.files");
-    const fileDoc = await filesColl.findOne({ _id: new mongoose.Types.ObjectId(fileId) });
+    const fileDoc = await filesColl.findOne({ filename });
 
     if (!fileDoc) return res.status(404).json({ message: "File not found" });
 
@@ -34,7 +30,7 @@ router.get("/:id", async (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
 
-    const downloadStream = bucket.openDownloadStream(new mongoose.Types.ObjectId(fileId));
+    const downloadStream = bucket.openDownloadStream(fileDoc._id);
 
     downloadStream.on("error", (err) => {
       console.error("GridFS download error:", err);
@@ -43,7 +39,7 @@ router.get("/:id", async (req, res) => {
 
     downloadStream.pipe(res);
   } catch (err) {
-    console.error("GET /api/media/:id failed:", err);
+    console.error("GET /api/media/:filename failed:", err);
     res.status(500).json({ message: "Server error" });
   }
 });

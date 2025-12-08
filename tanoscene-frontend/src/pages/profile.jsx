@@ -1,4 +1,3 @@
-// frontend/src/pages/profile.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authprovider.jsx";
@@ -22,6 +21,9 @@ export default function Profile() {
   const bannerInputRef = useRef(null);
 
   const token = localStorage.getItem("token");
+  const validToken = token && token !== "null" && token !== "undefined";
+  const authHeader = validToken ? { Authorization: `Bearer ${token}` } : {};
+
   const isOwnProfile = !username || currentUser?.username === username;
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export default function Profile() {
         setLoading(true);
         setNotFound(false);
 
-        if (!token && !username) {
+        if (!validToken && !username) {
           navigate("/login");
           return;
         }
@@ -40,20 +42,22 @@ export default function Profile() {
           : `${API_URL}/api/users/me`;
 
         const profileRes = await axios.get(profileUrl, {
-          headers: { Authorization: token ? `Bearer ${token}` : "" },
+          headers: authHeader,
         });
+
         setUserProfile(profileRes.data);
 
         const postsRes = await axios.get(
-          `${API_URL}/api/posts/user/${username || currentUser.username}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          `${API_URL}/api/posts/user/${username || currentUser?.username}`,
+          { headers: authHeader }
         );
+
         setPosts(postsRes.data);
 
-        if (!isOwnProfile) {
+        if (!isOwnProfile && validToken) {
           const followRes = await axios.get(
             `${API_URL}/api/users/${username}/isFollowing`,
-            { headers: { Authorization: `Bearer ${token}` } }
+            { headers: authHeader }
           );
           setIsFollowing(Boolean(followRes.data.following));
         }
@@ -66,7 +70,7 @@ export default function Profile() {
     };
 
     loadProfile();
-  }, [username, token, currentUser, navigate, isOwnProfile]);
+  }, [username, validToken, currentUser, navigate, isOwnProfile]);
 
   const handleEditToggle = async () => {
     if (!userProfile) return;
@@ -75,12 +79,11 @@ export default function Profile() {
       try {
         const formData = new FormData();
         if (bioRef.current) formData.append("bio", bioRef.current.value);
-
         if (userProfile.avatarFile) formData.append("avatar", userProfile.avatarFile);
         if (userProfile.bannerFile) formData.append("banner", userProfile.bannerFile);
 
         const res = await axios.put(`${API_URL}/api/users/me`, formData, {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+          headers: { ...authHeader, "Content-Type": "multipart/form-data" },
         });
 
         setUserProfile({ ...res.data });
@@ -124,7 +127,7 @@ export default function Profile() {
         ? `${API_URL}/api/users/${userProfile.username}/unfollow`
         : `${API_URL}/api/users/${userProfile.username}/follow`;
 
-      const res = await axios.post(url, {}, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.post(url, {}, { headers: authHeader });
       setIsFollowing(!isFollowing);
 
       if (res.data.currentUser) {
@@ -144,7 +147,7 @@ export default function Profile() {
   const likePost = async (postId) => {
     try {
       const res = await axios.post(`${API_URL}/api/posts/${postId}/like`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeader,
       });
       updatePost(res.data);
     } catch (err) {
@@ -155,7 +158,7 @@ export default function Profile() {
   const repostPost = async (postId) => {
     try {
       const res = await axios.post(`${API_URL}/api/posts/${postId}/repost`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeader,
       });
       updatePost(res.data);
     } catch (err) {
@@ -167,7 +170,7 @@ export default function Profile() {
     if (!content.trim()) return;
     try {
       const res = await axios.post(`${API_URL}/api/posts/${postId}/comment`, { content }, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeader,
       });
       updatePost(res.data);
     } catch (err) {
@@ -217,7 +220,7 @@ export default function Profile() {
         <div className="profile-info">
           <h2>@{userProfile.username}</h2>
 
-          {/* ADDED FOLLOW COUNTS (NO STYLE CHANGES) */}
+          {/* Follower counts preserved */}
           <p className="bio">
             Followers: {userProfile.followers?.length || 0} • Following: {userProfile.following?.length || 0}
           </p>
@@ -260,11 +263,13 @@ export default function Profile() {
                   </p>
                   <p>{p.content}</p>
 
-                  {/* FIXED MEDIA URL TO /api/media/:id */}
                   {p.media?.map((m, i) => {
                     if (!m) return null;
-                    const mediaUrl = `${API_URL}/api/media/${m}`;
-                    const ext = m.split(".").pop();
+
+                    const filename = m.split("/").pop();
+                    const mediaUrl = `${API_URL}/api/media/${filename}`;
+                    const ext = filename.split(".").pop();
+
                     if (["mp4", "webm", "ogg"].includes(ext)) {
                       return <video key={i} src={mediaUrl} controls className="post-media" />;
                     }

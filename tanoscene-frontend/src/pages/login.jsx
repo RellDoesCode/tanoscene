@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login as apiLogin } from "../common/auth.js";
+import axios from "axios";
 import { useAuth } from "../context/authprovider.jsx";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Login() {
   const navigate = useNavigate();
@@ -18,8 +20,13 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const userData = await apiLogin(form.username, form.password);
-      login(userData);
+      const res = await axios.post(`${API_URL}/api/users/login`, {
+        username: form.username,
+        password: form.password,
+      });
+      login(res.data);
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
       navigate("/");
     } catch (err) {
       console.error(err);

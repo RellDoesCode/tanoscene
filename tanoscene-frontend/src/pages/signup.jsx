@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signup } from "../common/auth.js";
-import { useAuth } from "../context/authprovider";
+import axios from "axios";
+import { useAuth } from "../context/authprovider.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -18,8 +18,15 @@ export default function Signup() {
     setError(null);
 
     try {
-      const data = await signup(form.username, form.email, form.password);
-      login(data);
+      const res = await axios.post(`${API_URL}/api/users/register`, {
+        username: form.username,
+        email: form.email,
+        password: form.password,
+      });
+
+      login(res.data);
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
       navigate("/profile");
     } catch (err) {
       console.error(err);
