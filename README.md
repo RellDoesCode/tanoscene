@@ -186,8 +186,8 @@ CREDITS
 
 COSC 484 – Group 3  
 
-Backend and database: Rell Beasley
-Frontend and UI: Fallon Katz, Lara Moussa, Nick Arellano
-Documentation and slides: Everyone
+-  Backend and database: Rell Beasley
+-  Frontend and UI: Fallon Katz, Lara Moussa, Nick Arellano
+-  Documentation and slides: Everyone
 
 
